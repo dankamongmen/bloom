@@ -508,6 +508,12 @@ def __process_template_folder(path, subs):
         processed_items.append(item)
     return processed_items
 
+def generate_lintian_overrides(path, package):
+    basename = package + '.lintian-overrides'
+    result = package + 'binary: dir-or-file-in-opt *'
+    override_file = os.path.join(path, 'debian', basename)
+    with io.open(override_file, 'w', encoding='utf-8') as f:
+        f.write(result)
 
 def process_template_files(path, subs):
     info(fmt("@!@{bf}==>@| In place processing templates in 'debian' folder."))
@@ -733,7 +739,7 @@ class DebianGenerator(BloomGenerator):
     def pre_branch(self, destination, source):
         if destination in self.debian_branches:
             return
-        # Run rosdep update is needed
+        # Run rosdep update if needed
         if not self.has_run_rosdep:
             self.update_rosdep()
         # Determine the current package being generated
@@ -745,7 +751,7 @@ class DebianGenerator(BloomGenerator):
         self.summarize_package(package, distro)
 
     def pre_rebase(self, destination):
-        # Get the stored configs is any
+        # Get the stored configs if any
         patches_branch = 'patches/' + destination
         config = self.load_original_config(patches_branch)
         if config is not None:
@@ -900,6 +906,7 @@ class DebianGenerator(BloomGenerator):
         self.set_releaser_history(dict(releaser_history))
         # Handle gbp.conf
         subs['release_tag'] = self.get_release_tag(subs)
+        generate_lintian_overrides('.', package)
         # Template files
         template_files = process_template_files('.', subs)
         # Remove any residual template files
